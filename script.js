@@ -64,41 +64,89 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initial call to highlight the correct nav item
   highlightNav();
 
-  // Contact form submission
+  // Contact form submission with AJAX
   const contactForm = document.getElementById("contact-form");
 
   if (contactForm) {
     contactForm.addEventListener("submit", function (e) {
       e.preventDefault();
 
-      // Simple form validation
-      const name = this.querySelector(
-        'input[placeholder="Your Name"]'
-      ).value.trim();
-      const email = this.querySelector(
-        'input[placeholder="Your Email"]'
-      ).value.trim();
-      const message = this.querySelector("textarea").value.trim();
+      // Get form data
+      const formData = new FormData(contactForm);
+      const submitBtn = contactForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
 
-      // Basic validation
-      if (!name || !email || !message) {
-        alert("Please fill in all required fields");
-        return;
-      }
+      // Disable submit button and show loading state
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Sending...";
 
-      // Simple email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        alert("Please enter a valid email address");
-        return;
-      }
-
-      // Here you would typically send data to a server
-      alert("Thank you for your message! I will get back to you soon.");
-
-      // Reset form
-      this.reset();
+      // Send AJAX request
+      fetch("contact_handler.php", {
+        method: "POST",
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            // Show success message
+            showMessage(data.message, "success");
+            // Reset form
+            contactForm.reset();
+          } else {
+            // Show error message
+            showMessage(data.message, "error");
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          showMessage(
+            "Sorry, there was an error sending your message. Please try again later.",
+            "error"
+          );
+        })
+        .finally(() => {
+          // Re-enable submit button
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+        });
     });
+
+    // Function to show messages
+    function showMessage(message, type) {
+      // Remove any existing message
+      const existingMessage = document.querySelector(".form-message");
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+
+      // Create message element
+      const messageDiv = document.createElement("div");
+      messageDiv.className = `form-message ${type}`;
+      messageDiv.textContent = message;
+
+      // Style the message
+      messageDiv.style.cssText = `
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 5px;
+            font-weight: 500;
+            ${
+              type === "success"
+                ? "background: #d4edda; color: #155724; border: 1px solid #c3e6cb;"
+                : "background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;"
+            }
+        `;
+
+      // Insert message before the form
+      contactForm.parentNode.insertBefore(messageDiv, contactForm);
+
+      // Auto-remove message after 5 seconds
+      setTimeout(() => {
+        if (messageDiv && messageDiv.parentNode) {
+          messageDiv.remove();
+        }
+      }, 5000);
+    }
   }
 
   // Smooth scrolling for anchor links
